@@ -44,6 +44,9 @@ setup(
         'calmjs.parse',
     ],
     entry_points={
+        'console_scripts': [
+            'crimp = crimp.runtime:main',
+        ],
     },
     test_suite="crimp.tests.make_suite",
 )

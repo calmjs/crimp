@@ -3,6 +3,7 @@
 The main runtime
 """
 
+import os
 import sys
 import logging
 import locale
@@ -14,6 +15,9 @@ from functools import partial
 from io import TextIOWrapper
 from io import StringIO
 from os.path import abspath
+from os.path import basename
+from os.path import dirname
+from os.path import pathsep
 
 from calmjs.parse import io
 from calmjs.parse import rules
@@ -46,9 +50,24 @@ class _HelpFormatter(HelpFormatter):
             actions, groups)
 
 
+def resolve_prog(program):
+    return (
+        basename(program)
+        if dirname(program) in os.environ.get('PATH', '').split(pathsep) else
+        (
+            # hardcode that crimp string in here because lazy
+            '%s -m crimp' % basename(sys.executable)
+            if program.endswith('__main__.py') else
+            program
+        )
+    )
+
+
 def create_argparser(program):
     argparser = ArgumentParser(
-        prog=program, formatter_class=_HelpFormatter, add_help=False)
+        prog=resolve_prog(program),
+        formatter_class=_HelpFormatter, add_help=False
+    )
     argparser.add_argument(
         'inputs', metavar='input_file', nargs='*',
         help='path(s) to input file(s)'
@@ -203,6 +222,7 @@ def run(inputs, output, mangle, obfuscate, pretty, source_map, indent_width,
 
 
 def main(*argv):
+    argv = argv if argv else sys.argv
     handler = logging.StreamHandler(stream=sys.stderr)
     handler.setFormatter(logging.Formatter('%(message)s'))
     handler.setLevel(logging.WARNING)
@@ -212,7 +232,3 @@ def main(*argv):
         run(**vars(parse_args(*argv)))
     finally:
         root_logger.removeHandler(handler)
-
-
-if __name__ == '__main__':  # pragma: no cover
-    main(*sys.argv)

@@ -8,14 +8,18 @@ import base64
 import json
 import sys
 import io
+import os
 
 from os import chdir
 from os import getcwd
 from os.path import exists
 from os.path import join
+from tempfile import mktemp
 from tempfile import mkdtemp
 from textwrap import dedent
 from shutil import rmtree
+from subprocess import Popen
+from subprocess import PIPE
 
 from crimp import runtime
 
@@ -79,6 +83,23 @@ class RuntimeTestCase(unittest.TestCase):
             self.stub_stdio_bytes()
         else:
             self.stub_stdio_text()
+
+    def test_resolve_prog(self):
+        old_path = os.environ.get('PATH')
+
+        def cleanup():
+            os.environ['PATH'] = old_path
+
+        self.addCleanup(cleanup)
+
+        root = mktemp()
+        os.environ['PATH'] = root
+        self.assertEqual('prog', runtime.resolve_prog(join(root, 'prog')))
+        alt = join(mktemp(), 'prog')
+        self.assertEqual(alt, runtime.resolve_prog(alt))
+        self.assertEqual('prog', runtime.resolve_prog(join(root, 'prog')))
+        self.assertIn('-m crimp', runtime.resolve_prog(
+            join(root, 'prog', '__main__.py')))
 
     def test_argparser_basic(self):
         parser = runtime.create_argparser('crimp')
@@ -475,3 +496,7 @@ class RuntimeTestCase(unittest.TestCase):
             runtime.main('crimp', source)
 
         self.assertEqual(e.exception.args[0], 5)
+
+    def test_integration(self):
+        p = Popen(['crimp'], stdin=PIPE, stdout=PIPE)
+        self.assertEqual(b'var foo=1;', p.communicate(b'var foo = 1;')[0])
