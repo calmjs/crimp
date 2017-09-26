@@ -497,6 +497,14 @@ class RuntimeTestCase(unittest.TestCase):
 
         self.assertEqual(e.exception.args[0], 5)
 
+    def test_version_check(self):
+        self.stub_stdio()
+        with self.assertRaises(SystemExit) as e:
+            runtime.main('crimp', '--version')
+
+        self.assertEqual(e.exception.args[0], 0)
+        self.assertTrue(sys.stdout.getvalue().startswith('crimp'))
+
     def test_integration(self):
         p = Popen(['crimp'], stdin=PIPE, stdout=PIPE)
         self.assertEqual(b'var foo=1;', p.communicate(b'var foo = 1;')[0])

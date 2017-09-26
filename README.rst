@@ -57,8 +57,8 @@ reveal the options that are available.
 
     $ crimp --help
     usage: crimp [input_file [input_file ...]] [-h] [-O <output_path>] [-m] [-p]
-                 [-s [<sourcemap_path>]] [-o] [--drop-semi] [--indent-width n]
-                 [--encoding <codec>]
+                 [-s [<sourcemap_path>]] [--version] [-o] [--drop-semi]
+                 [--indent-width n] [--encoding <codec>]
 
     positional arguments:
       input_file            path(s) to input file(s)
@@ -73,6 +73,7 @@ reveal the options that are available.
                             enable source map; filename defaults to
                             <output_path>.map, if identical to <output_path> it
                             will be written inline as a data url
+      --version             show version information
       --indent-width n      indentation width for pretty printer
       --encoding <codec>    the encoding for file-based I/O; stdio relies on
                             system locale

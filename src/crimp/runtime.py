@@ -9,6 +9,7 @@ import logging
 import locale
 import codecs
 
+from argparse import Action
 from argparse import ArgumentParser
 from argparse import HelpFormatter
 from functools import partial
@@ -18,6 +19,9 @@ from os.path import abspath
 from os.path import basename
 from os.path import dirname
 from os.path import pathsep
+
+from pkg_resources import Requirement
+from pkg_resources import working_set
 
 from calmjs.parse import io
 from calmjs.parse import rules
@@ -48,6 +52,31 @@ class _HelpFormatter(HelpFormatter):
             actions[0].option_strings = []
         return super(_HelpFormatter, self)._format_actions_usage(
             actions, groups)
+
+
+class Version(Action):
+    """
+    Version reporting for a console_scripts entry_point
+    """
+
+    def __init__(self, *a, **kw):
+        kw['nargs'] = 0
+        super(Version, self).__init__(*a, **kw)
+
+    def pkg_version(self, name, default_name='?'):
+        dist = working_set.find(Requirement.parse(name))
+        name = getattr(dist, 'project_name', name)
+        version = getattr(dist, 'version', '?')
+        location = getattr(dist, 'location', '?')
+        return name, version, location
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        sys.stdout.write('%s %s from %s\n' % self.pkg_version('crimp'))
+        sys.stdout.write('%s %s from %s\n' % self.pkg_version('calmjs.parse'))
+        sys.stdout.write('%s %s from %s\n' % self.pkg_version('ply'))
+        sys.stdout.write('using %s %s\n' % (
+            sys.executable, '.'.join(str(i) for i in sys.version_info[:3])))
+        sys.exit(0)
 
 
 def resolve_prog(program):
@@ -94,6 +123,9 @@ def create_argparser(program):
         help='enable source map; filename defaults to <output_path>.map, '
              'if identical to <output_path> it will be written inline as '
              'a data url')
+    argparser.add_argument(
+        '--version', action=Version,
+        help='show version information')
 
     mangle_group = argparser.add_argument_group('basic mangling options')
     mangle_group.add_argument(
@@ -128,7 +160,7 @@ def parse_args(*argv):
 
 
 def run(inputs, output, mangle, obfuscate, pretty, source_map, indent_width,
-        drop_semi, encoding):
+        drop_semi, encoding, version):
     """
     Not a general use method, as sys.exit is called.
     """
