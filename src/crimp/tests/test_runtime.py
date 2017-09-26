@@ -32,6 +32,13 @@ class BytesIO(io.BytesIO):
         self.called_close = True
 
 
+def TextIO(*a):
+    # this is typically used for stderr, when the underlying libraries
+    # (most notably logging) require that the stream is of an exact type
+    # due to the datatypes that it uses in Python 2.
+    return BytesIO(*a) if str is bytes else StringIO(*a)
+
+
 class RuntimeTestCase(unittest.TestCase):
 
     def mkdtemp(self):
@@ -48,19 +55,21 @@ class RuntimeTestCase(unittest.TestCase):
             self.old_stdin, self.old_stdout, self.old_stderr)
 
     def stub_stdio_bytes(self):
-        self.old_stderr, sys.stderr = sys.stderr, BytesIO()
+        self.old_stderr, sys.stderr = sys.stderr, TextIO()
         self.old_stdout, sys.stdout = sys.stdout, BytesIO()
         self.old_stdin, sys.stdin = sys.stdin, BytesIO()
+
         sys.stderr.name = '<stderr>'
         sys.stdout.name = '<stdout>'
         sys.stdin.name = '<stdin>'
-        sys.stderr.encoding = self.old_stderr.encoding
+        # only if BytesIO, which is no longer always the case
+        # sys.stderr.encoding = self.old_stderr.encoding
         sys.stdout.encoding = self.old_stdout.encoding
         sys.stdin.encoding = self.old_stdin.encoding
         self.addCleanup(self.reset_io)
 
     def stub_stdio_text(self):
-        self.old_stderr, sys.stderr = sys.stderr, StringIO()
+        self.old_stderr, sys.stderr = sys.stderr, TextIO()
         self.old_stdout, sys.stdout = sys.stdout, StringIO()
         self.old_stdin, sys.stdin = sys.stdin, StringIO()
         self.addCleanup(self.reset_io)
@@ -395,6 +404,36 @@ class RuntimeTestCase(unittest.TestCase):
         self.assertEqual(
             "Function statement requires a name at 1:9 in '%s'\n" % source,
             sys.stderr.getvalue())
+
+    def test_unicode_decode_error(self):
+        self.stub_stdio()
+        root = self.mkdtemp()
+        source = join(root, 'source.js')
+        with open(source, 'wb') as fd:
+            fd.write(b'var \x82\xcd\x82\xa2 = 1;')
+
+        with self.assertRaises(SystemExit) as e:
+            runtime.main('crimp', source, '--encoding=utf-8')
+
+        self.assertEqual(e.exception.args[0], 1)
+        self.assertIn(
+            "codec can't decode byte 0x82", sys.stderr.getvalue())
+
+    def test_unicode_encode_error(self):
+        self.stub_stdio_bytes()
+        sys.stdin.encoding = 'shift_jis'
+        sys.stdin.write(b'var \x82\xcd\x82\xa2 = "yes"')
+        sys.stdin.seek(0)
+
+        root = self.mkdtemp()
+        dest = join(root, 'dest.js')
+
+        with self.assertRaises(SystemExit) as e:
+            runtime.main('crimp', '--encoding=ascii', '-O', dest)
+
+        self.assertEqual(e.exception.args[0], 1)
+        self.assertIn(
+            "'ascii' codec can't encode characters", sys.stderr.getvalue())
 
     def test_write_error(self):
         def error():

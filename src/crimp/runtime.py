@@ -188,6 +188,12 @@ def run(inputs, output, mangle, obfuscate, pretty, source_map, indent_width,
         if e.args and isinstance(e.args[0], int):
             sys.exit(e.args[0])
         sys.exit(5)  # EIO
+    except UnicodeDecodeError as e:
+        logger.error('read error: %s', e)
+        sys.exit(1)
+    except UnicodeEncodeError as e:
+        logger.error('write error: %s', e)
+        sys.exit(1)
     except KeyboardInterrupt:
         sys.exit(130)
     # no need to close any streams as they are callables and that the io
