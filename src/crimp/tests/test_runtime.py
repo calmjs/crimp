@@ -423,7 +423,7 @@ class RuntimeTestCase(unittest.TestCase):
 
         self.assertEqual(e.exception.args[0], 1)
         self.assertEqual(
-            "Function statement requires a name at 1:9 in '%s'\n" % source,
+            "Function statement requires a name at 1:9 in %r\n" % source,
             sys.stderr.getvalue())
 
     def test_unicode_decode_error(self):
