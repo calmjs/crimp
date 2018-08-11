@@ -91,4 +91,5 @@ branches:
     - testing
     - master
     - 1.0.x
+    - 1.0.1
     - 2.0.x
