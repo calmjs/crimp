@@ -9,7 +9,9 @@ environment:
     - PYTHON: "C:\\Python35"
       nodejs_version: "6.9"
     - PYTHON: "C:\\Python36"
-      nodejs_version: "7.4"
+      nodejs_version: "8"
+    - PYTHON: "C:\\Python37"
+      nodejs_version: "10"
 
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
@@ -19,7 +21,7 @@ install:
 
 test_script:
   - python setup.py develop
-  - coverage run --include=src\* -m unittest crimp.tests.make_suite
+  - coverage run --include=src\* -m unittest calmjs.parse.tests.make_suite
   - coverage report -m
 
 artifacts:
